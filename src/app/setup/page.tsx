@@ -21,7 +21,7 @@ export default function DatabaseSetup() {
       addLog('Starting database setup...');
 
       // First, let's test the connection
-      const { data: testData, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from('_test')
         .select('*')
         .limit(1);
@@ -150,7 +150,7 @@ export default function DatabaseSetup() {
       setStatus('Testing connection...');
       addLog('Testing Supabase connection...');
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('vehicles')
         .select('*')
         .limit(1);

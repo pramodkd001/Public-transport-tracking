@@ -10,11 +10,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Navigation,
   Satellite,
   Wifi
 } from 'lucide-react';
-import GoogleMap from '@/components/GoogleMap';
 import SimpleMap from '@/components/SimpleMap';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 
@@ -67,7 +65,7 @@ export default function DriverDashboard() {
   const handleStartTracking = async () => {
     try {
       // Get initial position
-      const initialLocation = await getCurrentPosition();
+      await getCurrentPosition();
       setIsTracking(true);
       setTrackingStarted(true);
     } catch (error) {
@@ -319,32 +317,7 @@ export default function DriverDashboard() {
         </div>
       )}
 
-      {/* Google Maps Integration (only if API key is working) */}
-      {false && trackingStarted && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Live Location Map
-            </h2>
-            <div className="flex items-center text-sm text-gray-600">
-              <Satellite className="h-4 w-4 mr-1" />
-              <span>{isWatching ? 'GPS Active' : 'GPS Inactive'}</span>
-            </div>
-          </div>
-          
-          <GoogleMap 
-            location={location ? { lat: location.lat, lng: location.lng } : null}
-            zoom={16}
-            className="w-full h-64 rounded-lg"
-          />
-          
-          {location && (
-            <div className="mt-3 text-xs text-gray-500 text-center">
-              Last updated: {new Date(location.timestamp).toLocaleTimeString()}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Google Maps Integration (disabled - using SimpleMap instead) */}
 
       {/* Quick Stats */}
       {trackingStarted && (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bus, MapPin, Users, Shield, Smartphone } from "lucide-react";
+import { Bus, MapPin, Users, Smartphone } from "lucide-react";
 
 export default function Home() {
   return (

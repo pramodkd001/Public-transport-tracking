@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { ArrowLeft, Smartphone, MapPin, User } from "lucide-react";
+import { ArrowLeft, Smartphone, User } from "lucide-react";
 
 export default function DriverLayout({
   children,

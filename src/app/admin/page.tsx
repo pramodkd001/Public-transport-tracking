@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Truck, Users, MapPin, Activity, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,9 +27,9 @@ const mockLiveVehicles = [
 ];
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(mockStats);
-  const [recentAllocations, setRecentAllocations] = useState(mockRecentAllocations);
-  const [liveVehicles, setLiveVehicles] = useState(mockLiveVehicles);
+  const [stats] = useState(mockStats);
+  const [recentAllocations] = useState(mockRecentAllocations);
+  const [liveVehicles] = useState(mockLiveVehicles);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
