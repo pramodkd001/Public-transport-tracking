@@ -848,6 +848,39 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Key Performance Metrics */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Key Performance Indicators</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">${mockPerformanceMetrics.totalRevenue.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Total Revenue</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{mockPerformanceMetrics.avgTripTime} min</div>
+                  <div className="text-sm text-gray-600">Avg Trip Time</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">{mockPerformanceMetrics.customerSatisfaction}/5</div>
+                  <div className="text-sm text-gray-600">Customer Rating</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{mockPerformanceMetrics.fuelEfficiency} km/l</div>
+                  <div className="text-sm text-gray-600">Fuel Efficiency</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
+                  <div className="text-2xl font-bold text-red-600">${mockPerformanceMetrics.maintenanceCosts.toLocaleString()}</div>
+                  <div className="text-sm text-gray-600">Maintenance Cost</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg">
+                  <div className="text-2xl font-bold text-indigo-600">{mockPerformanceMetrics.emergencyResponse} min</div>
+                  <div className="text-sm text-gray-600">Emergency Response</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Performance Radar Chart */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
