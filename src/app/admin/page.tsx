@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Truck, Users, Clock, Activity, Bell, BarChart3, TrendingUp, PieChart, RefreshCw, Plus, Leaf, AlertTriangle, MapPin, Fuel, Shield } from 'lucide-react';
+import { Truck, Users, Clock, Activity, Bell, BarChart3, TrendingUp, RefreshCw, Plus, Leaf, AlertTriangle, MapPin, Fuel, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { 
   PieChart as RechartsPieChart, 
@@ -48,6 +48,7 @@ const mockRoutes = [
   { id: 'Route 6 - Express', passengers: 38, capacity: 45, status: 'Normal', waitTime: 4, efficiency: 88, delay: 0 },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const mockDrivers = [
   { name: 'Raj Kumar', punctuality: 92, trips: 28, hours: 8.5, rating: 4.8, experience: '5 years', issues: 0 },
   { name: 'Priya Sharma', punctuality: 88, trips: 25, hours: 8.0, rating: 4.6, experience: '3 years', issues: 1 },
@@ -367,7 +368,8 @@ export default function AdminDashboard() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ name, value }: any) => `${name}: ${value}`}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      label={({name, value}: any) => `${name}: ${value}`}
                     >
                       {[
                         { name: 'Active', value: mockData.activeVehicles, color: '#10B981' },
@@ -441,7 +443,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Today's Performance</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Today&apos;s Performance</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Trips Completed</span>
@@ -835,7 +837,8 @@ export default function AdminDashboard() {
                       cx="50%"
                       cy="50%"
                       outerRadius={100}
-                      label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      label={({name, percent}: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
                       {mockAlertDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -1019,7 +1022,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Today's Alert Summary</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Today&apos;s Alert Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                     <div className="flex items-center">
