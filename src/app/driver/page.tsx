@@ -2,391 +2,330 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Truck, 
   MapPin, 
-  Play, 
-  Square, 
-  QrCode, 
-  AlertTriangle,
+  Navigation, 
+  Clock, 
+  Users, 
+  Phone,
+  AlertCircle,
   CheckCircle,
-  Clock,
   Satellite,
-  Wifi
+  Activity,
+  Settings,
+  RefreshCw,
+  PowerCircle
 } from 'lucide-react';
-import SimpleMap from '@/components/SimpleMap';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 
-// Mock data for driver
-const mockDriverData = {
-  id: '1',
-  name: 'Raj Kumar',
-  phone: '+919876543210',
-  assignedVehicle: {
-    id: '1',
-    number: 'KA01AB1234',
-    route: 'Route 1: City Center - Airport',
-    capacity: 45
-  },
-  currentShift: {
-    id: '1',
-    startTime: '2024-01-20T06:00:00Z',
-    isActive: true
-  }
-};
-
-export default function DriverDashboard() {
-  const [driver] = useState(mockDriverData);
-  const [isTracking, setIsTracking] = useState(false);
-  const [trackingStarted, setTrackingStarted] = useState(false);
-  const [locationUpdateCount, setLocationUpdateCount] = useState(0);
-
-  // Use the location tracking hook
+export default function DriverPage() {
+  const [driverId] = useState('DRV001'); // In real app, this would come from auth
+  const [vehicleId, setVehicleId] = useState('');
+  const [vehicleConfirmed, setVehicleConfirmed] = useState(false);
+  const [trackingActive, setTrackingActive] = useState(false);
+  const [lastKnownLocation, setLastKnownLocation] = useState<{lat: number, lng: number} | null>(null);
+  
   const { 
     location, 
-    error: locationError, 
+    error,
     isWatching,
     updateCount,
     lastSaveStatus,
-    getCurrentPosition 
+    getCurrentPosition,
+    startTracking: startLocationTracking,
+    stopTracking: stopLocationTracking
   } = useLocationTracking({
-    vehicleId: 'BUS001', // Use vehicle number instead of ID for simplicity
-    driverId: 'driver1', // We'll use a simple identifier for testing
-    isTracking,
-    updateInterval: 5000 // Update every 5 seconds
+    vehicleId: vehicleConfirmed ? vehicleId : undefined,
+    driverId,
+    isTracking: trackingActive
   });
 
-  // Update location count when location changes
-  useEffect(() => {
-    if (location && isTracking) {
-      setLocationUpdateCount(prev => prev + 1);
-    }
-  }, [location, isTracking]);
+  // Vehicle options (in real app, this would come from API)
+  const availableVehicles = [
+    { id: 'BUS001', number: 'KA01AB1234', route: 'Route 1: City Center - Airport' },
+    { id: 'BUS002', number: 'KA01AB1235', route: 'Route 2: Railway Station - IT Park' },
+    { id: 'BUS003', number: 'KA01AB1237', route: 'Route 4: Market - Hospital' }
+  ];
 
-  const handleStartTracking = async () => {
-    try {
-      // Get initial position
-      await getCurrentPosition();
-      setIsTracking(true);
-      setTrackingStarted(true);
-    } catch (error) {
-      console.error('Error getting location:', error);
-      // Show error to user but still allow manual start for demo
-      setIsTracking(true);
-      setTrackingStarted(true);
+  const selectedVehicle = availableVehicles.find(v => v.id === vehicleId);
+
+  useEffect(() => {
+    // Update tracking status based on the hook
+    setTrackingActive(isWatching);
+    if (location) {
+      setLastKnownLocation({ lat: location.lat, lng: location.lng });
+    }
+  }, [isWatching, location]);
+
+  const handleVehicleConfirm = () => {
+    if (vehicleId) {
+      setVehicleConfirmed(true);
+    }
+  };
+
+  const handleStartTracking = () => {
+    if (vehicleId && driverId) {
+      setTrackingActive(true);
     }
   };
 
   const handleStopTracking = () => {
-    setIsTracking(false);
+    if (vehicleId) {
+      setTrackingActive(false);
+    }
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString();
+  const handleEmergency = () => {
+    alert('Emergency services contacted! (Demo feature)');
   };
 
-  const getShiftDuration = () => {
-    const start = new Date(driver.currentShift.startTime);
-    const now = new Date();
-    const diffMs = now.getTime() - start.getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
+  const getAccuracyColor = (accuracy?: number) => {
+    if (!accuracy) return 'text-gray-500';
+    if (accuracy <= 10) return 'text-green-600';
+    if (accuracy <= 50) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getSignalStrength = (accuracy?: number) => {
+    if (!accuracy) return 'Poor';
+    if (accuracy <= 10) return 'Excellent';
+    if (accuracy <= 30) return 'Good';
+    if (accuracy <= 50) return 'Fair';
+    return 'Poor';
   };
 
   return (
-    <div className="px-4 py-6 max-w-md mx-auto">
-      {/* Welcome Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Truck className="h-8 w-8 text-blue-600" />
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">
-            Welcome, {driver.name}
-          </h1>
-          <p className="text-sm text-gray-600">{driver.phone}</p>
-        </div>
-      </div>
-
-      {/* Vehicle Assignment */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Assigned Vehicle
-        </h2>
-        {driver.assignedVehicle ? (
-          <div className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-lg font-medium text-gray-900">
-                {driver.assignedVehicle.number}
-              </span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                Assigned
-              </span>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold mb-2">Driver Dashboard</h1>
+          <p className="text-green-100">GPS Location Tracking & Vehicle Management</p>
+          
+          {/* Quick Status */}
+          <div className="flex items-center gap-4 mt-4 text-sm">
+            <div className="flex items-center">
+              <div className={`w-2 h-2 rounded-full mr-2 ${trackingActive ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+              <span>{trackingActive ? 'GPS Active' : 'GPS Inactive'}</span>
             </div>
-            <p className="text-sm text-gray-600 mb-2">
-              {driver.assignedVehicle.route}
-            </p>
-            <p className="text-xs text-gray-500">
-              Capacity: {driver.assignedVehicle.capacity} passengers
-            </p>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
-            <p className="text-gray-600">No vehicle assigned</p>
-          </div>
-        )}
-      </div>
-
-      {/* Vehicle Confirmation */}
-      {driver.assignedVehicle && !trackingStarted && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
-          <div className="flex items-start">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-yellow-800 mb-2">
-                Confirm Vehicle Access
-              </h3>
-              <p className="text-sm text-yellow-700 mb-4">
-                Please confirm you are seated in vehicle {driver.assignedVehicle.number} to start tracking.
-              </p>
-              <div className="flex gap-3">
-                <button className="flex items-center px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Scan QR
-                </button>
-                <button 
-                  onClick={handleStartTracking}
-                  className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
-                >
-                  Confirm Manually
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tracking Status */}
-      {trackingStarted && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Tracking Status
-            </h2>
-            <div className={`flex items-center ${isTracking ? 'text-green-600' : 'text-red-600'}`}>
-              <div className={`w-2 h-2 rounded-full mr-2 ${isTracking ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <span className="text-sm font-medium">
-                {isTracking ? 'Active' : 'Stopped'}
-              </span>
-            </div>
-          </div>
-
-          {/* Current Shift Info */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Shift Started</p>
-                <p className="font-medium">{formatTime(driver.currentShift.startTime)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Duration</p>
-                <p className="font-medium">{getShiftDuration()}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Location Info */}
-          {location && (
-            <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Location:</span>
-                <span className="font-medium">
-                  {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Speed:</span>
-                <span className="font-medium">
-                  {location.speed ? `${location.speed.toFixed(1)} km/h` : 'N/A'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Heading:</span>
-                <span className="font-medium">
-                  {location.heading ? `${location.heading.toFixed(0)}°` : 'N/A'}
-                </span>
-              </div>
-              {location.accuracy && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Accuracy:</span>
-                  <span className="font-medium">{location.accuracy.toFixed(0)}m</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Control Buttons */}
-          <div className="flex gap-3">
-            {!isTracking ? (
-              <button
-                onClick={handleStartTracking}
-                className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Start Tracking
-              </button>
-            ) : (
-              <button
-                onClick={handleStopTracking}
-                className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700"
-              >
-                <Square className="h-5 w-5 mr-2" />
-                Stop Tracking
-              </button>
-            )}
-          </div>
-
-          {isTracking && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                  <span className="text-sm text-green-800">
-                    Your location is being shared with passengers
-                  </span>
-                </div>
-                <div className="flex items-center text-xs text-green-600">
-                  <Wifi className="h-4 w-4 mr-1" />
-                  <span>{updateCount || locationUpdateCount} updates</span>
-                </div>
-              </div>
-              {lastSaveStatus && (
-                <div className="mt-2 text-xs">
-                  <span className={`px-2 py-1 rounded-full ${
-                    lastSaveStatus === 'success' ? 'bg-green-100 text-green-700' :
-                    lastSaveStatus === 'local' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {lastSaveStatus === 'success' ? 'Saved to Cloud' :
-                     lastSaveStatus === 'local' ? 'Saved Locally' :
-                     'Save Failed'}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {locationError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center">
-                <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-                <span className="text-sm text-red-800">
-                  Location Error: {locationError}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Simple Map (fallback for Google Maps API issues) */}
-      {trackingStarted && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Live Location
-            </h2>
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center">
               <Satellite className="h-4 w-4 mr-1" />
-              <span>{isWatching ? 'GPS Active' : 'GPS Inactive'}</span>
-            </div>
-          </div>
-          
-          <SimpleMap 
-            location={location ? { lat: location.lat, lng: location.lng } : null}
-            zoom={16}
-            className="w-full h-64"
-          />
-          
-          {location && (
-            <div className="mt-3 text-xs text-gray-500 text-center">
-              Last updated: {new Date(location.timestamp).toLocaleTimeString()}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Google Maps Integration (disabled - using SimpleMap instead) */}
-
-      {/* Quick Stats */}
-      {trackingStarted && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-            <MapPin className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Updates Sent</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {isTracking ? Math.floor(Math.random() * 50) + 10 : 0}
-            </p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-            <Clock className="h-6 w-6 text-green-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Next Stop</p>
-            <p className="text-lg font-semibold text-gray-900">2 min</p>
-          </div>
-        </div>
-      )}
-
-      {/* Debug Information */}
-      {trackingStarted && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Debug Information
-          </h2>
-          <div className="text-sm space-y-2">
-            <div className="flex justify-between">
-              <span>GPS Status:</span>
-              <span className={isWatching ? 'text-green-600' : 'text-red-600'}>
-                {isWatching ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Updates Sent:</span>
-              <span>{updateCount || locationUpdateCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Last Save:</span>
-              <span className={
-                lastSaveStatus === 'success' ? 'text-green-600' :
-                lastSaveStatus === 'local' ? 'text-yellow-600' :
-                lastSaveStatus === 'error' ? 'text-red-600' : 'text-gray-600'
-              }>
-                {lastSaveStatus || 'None'}
-              </span>
+              <span>Signal: {getSignalStrength(location?.accuracy)}</span>
             </div>
             {location && (
-              <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
-                <div>Lat: {location.lat.toFixed(6)}</div>
-                <div>Lng: {location.lng.toFixed(6)}</div>
-                <div>Accuracy: {location.accuracy?.toFixed(0)}m</div>
-                <div>Time: {new Date(location.timestamp).toLocaleTimeString()}</div>
+              <div className="flex items-center">
+                <Activity className="h-4 w-4 mr-1" />
+                <span>Speed: {location.speed ? `${Math.round(location.speed)} km/h` : '0 km/h'}</span>
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Emergency Contact */}
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-red-800 mb-2">
-          Emergency Contact
-        </h3>
-        <p className="text-sm text-red-700 mb-3">
-          In case of emergency, contact the control room immediately.
-        </p>
-        <button className="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
-          Call Emergency: +91-1800-XXX-XXXX
-        </button>
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Vehicle Assignment */}
+        {!vehicleConfirmed ? (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center mb-4">
+              <Settings className="h-5 w-5 text-gray-400 mr-2" />
+              <h2 className="text-lg font-semibold text-gray-900">Select Your Vehicle</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available Vehicles
+                </label>
+                <select
+                  value={vehicleId}
+                  onChange={(e) => setVehicleId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 bg-white"
+                >
+                  <option value="">Select a vehicle...</option>
+                  {availableVehicles.map(vehicle => (
+                    <option key={vehicle.id} value={vehicle.id}>
+                      {vehicle.number} - {vehicle.route}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <button
+                onClick={handleVehicleConfirm}
+                disabled={!vehicleId}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+              >
+                Confirm Vehicle Assignment
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Vehicle Info */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-900">Vehicle Assignment</h2>
+                </div>
+                <button 
+                  onClick={() => setVehicleConfirmed(false)}
+                  className="text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Change Vehicle
+                </button>
+              </div>
+              
+              {selectedVehicle && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-900">{selectedVehicle.number}</h3>
+                  <p className="text-green-700 text-sm">{selectedVehicle.route}</p>
+                  <p className="text-green-600 text-xs mt-1">Driver ID: {driverId}</p>
+                </div>
+              )}
+            </div>
+
+            {/* GPS Tracking Control */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <Satellite className="h-5 w-5 text-gray-400 mr-2" />
+                  <h2 className="text-lg font-semibold text-gray-900">GPS Tracking</h2>
+                </div>
+                <div className={`flex items-center px-3 py-1 rounded-full text-sm ${trackingActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  <PowerCircle className="h-4 w-4 mr-1" />
+                  {trackingActive ? 'Active' : 'Inactive'}
+                </div>
+              </div>
+
+              {/* GPS Status */}
+              {location && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <MapPin className="h-5 w-5 text-blue-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Current Location</p>
+                        <p className="text-xs text-blue-700">
+                          {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <Activity className="h-5 w-5 text-yellow-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-900">GPS Accuracy</p>
+                        <p className={`text-xs ${getAccuracyColor(location.accuracy)}`}>
+                          ±{location.accuracy ? Math.round(location.accuracy) : 'Unknown'} meters
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <Clock className="h-5 w-5 text-green-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900">Last Update</p>
+                        <p className="text-xs text-green-700">
+                          {location ? new Date(location.timestamp).toLocaleTimeString() : 'Never'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-red-900">GPS Error</p>
+                      <p className="text-xs text-red-700">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Control Buttons */}
+              <div className="flex gap-4">
+                {!trackingActive ? (
+                  <button
+                    onClick={handleStartTracking}
+                    className="flex-1 flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Start GPS Tracking
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopTracking}
+                    className="flex-1 flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                  >
+                    <PowerCircle className="h-4 w-4 mr-2" />
+                    Stop GPS Tracking
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">How GPS Tracking Works</h3>
+              <div className="space-y-3 text-sm text-gray-700">
+                <div className="flex items-start">
+                  <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs mr-3 mt-0.5">1</div>
+                  <div>
+                    <p className="font-medium">Start Tracking</p>
+                    <p className="text-gray-600">Click "Start GPS Tracking" to begin sharing your location with passengers</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs mr-3 mt-0.5">2</div>
+                  <div>
+                    <p className="font-medium">Live Updates</p>
+                    <p className="text-gray-600">Your location updates every few seconds and is stored locally for reliability</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs mr-3 mt-0.5">3</div>
+                  <div>
+                    <p className="font-medium">Passenger Access</p>
+                    <p className="text-gray-600">Passengers can see your bus location in real-time on the tracking page</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Emergency Support</h3>
+                  <p className="text-gray-600 text-sm">Quick access to help and support</p>
+                </div>
+                <button
+                  onClick={handleEmergency}
+                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Emergency
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

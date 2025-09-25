@@ -250,3 +250,85 @@ export function useLocationTracking({
     stopTracking
   };
 }
+
+// Additional utility functions for tracking management
+export function getAllTrackedVehicles() {
+  try {
+    const localData = localStorage.getItem('locationHistory');
+    if (!localData) return [];
+
+    const locationHistory = JSON.parse(localData);
+    const vehicleMap = new Map();
+
+    // Get the most recent location for each vehicle
+    locationHistory.forEach((entry: any) => {
+      if (entry.vehicleId && entry.lat && entry.lng) {
+        const existing = vehicleMap.get(entry.vehicleId);
+        if (!existing || new Date(entry.savedAt) > new Date(existing.lastUpdate)) {
+          vehicleMap.set(entry.vehicleId, {
+            vehicleId: entry.vehicleId,
+            driverId: entry.driverId || 'Unknown',
+            location: {
+              lat: entry.lat,
+              lng: entry.lng,
+              speed: entry.speed,
+              heading: entry.heading,
+              accuracy: entry.accuracy,
+              timestamp: entry.timestamp || Date.now()
+            },
+            lastUpdate: entry.savedAt
+          });
+        }
+      }
+    });
+
+    return Array.from(vehicleMap.values());
+  } catch (error) {
+    console.error('Error getting tracked vehicles:', error);
+    return [];
+  }
+}
+
+export function getTrackingStatus(vehicleId: string) {
+  try {
+    const vehicles = getAllTrackedVehicles();
+    const vehicle = vehicles.find(v => v.vehicleId === vehicleId);
+    
+    if (!vehicle) return { isTracking: false, lastUpdate: null };
+
+    const timeSinceUpdate = Date.now() - new Date(vehicle.lastUpdate).getTime();
+    const isRecent = timeSinceUpdate < 60000; // Consider tracking active if updated within last minute
+
+    return {
+      isTracking: isRecent,
+      lastUpdate: vehicle.lastUpdate,
+      location: vehicle.location
+    };
+  } catch (error) {
+    console.error('Error getting tracking status:', error);
+    return { isTracking: false, lastUpdate: null };
+  }
+}
+
+// Start tracking for a specific vehicle (standalone function)
+export async function startTracking(vehicleId: string, driverId: string): Promise<boolean> {
+  try {
+    // Just return true - actual tracking is handled by the useLocationTracking hook
+    console.log(`Starting tracking for vehicle ${vehicleId} with driver ${driverId}`);
+    return true;
+  } catch (error) {
+    console.error('Error starting tracking:', error);
+    return false;
+  }
+}
+
+// Stop tracking for a specific vehicle (standalone function)
+export async function stopTracking(vehicleId: string): Promise<boolean> {
+  try {
+    console.log(`Stopping tracking for vehicle ${vehicleId}`);
+    return true;
+  } catch (error) {
+    console.error('Error stopping tracking:', error);
+    return false;
+  }
+}

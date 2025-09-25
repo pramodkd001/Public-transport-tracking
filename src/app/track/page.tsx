@@ -9,55 +9,69 @@ import {
   Search,
   RefreshCw,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Satellite,
+  Phone,
+  MessageSquare
 } from 'lucide-react';
+import { getAllTrackedVehicles } from '@/hooks/useLocationTracking';
 
-// Mock data for live buses
-const mockBuses = [
+// Enhanced bus data structure with real-time capabilities
+interface Bus {
+  id: string;
+  number: string;
+  route: string;
+  driver: string;
+  location: { lat: number; lng: number };
+  speed?: number;
+  heading?: number;
+  accuracy?: number;
+  passengers: number;
+  capacity: number;
+  nextStop: string;
+  eta: number;
+  lastUpdate: string;
+  status: 'moving' | 'stopped' | 'offline';
+  isRealTime: boolean; // True if getting real GPS data
+}
+
+// Mock data with some buses that could have real GPS data
+const mockBusesTemplate = [
   {
-    id: '1',
+    id: 'BUS001',
     number: 'KA01AB1234',
     route: 'Route 1: City Center - Airport',
     driver: 'Raj Kumar',
     location: { lat: 12.9716, lng: 77.5946 },
-    speed: 35,
-    heading: 90,
     passengers: 23,
     capacity: 45,
     nextStop: 'MG Road',
     eta: 3,
-    lastUpdate: '30 sec ago',
-    status: 'moving'
+    status: 'moving' as const
   },
   {
-    id: '2',
+    id: 'BUS002',
     number: 'KA01AB1235', 
     route: 'Route 2: Railway Station - IT Park',
     driver: 'Priya Sharma',
     location: { lat: 12.9816, lng: 77.6046 },
-    speed: 0,
-    heading: 180,
     passengers: 15,
     capacity: 50,
     nextStop: 'Brigade Road',
     eta: 1,
-    lastUpdate: '1 min ago',
-    status: 'stopped'
+    status: 'stopped' as const
   },
   {
-    id: '3',
+    id: 'BUS003',
     number: 'KA01AB1237',
     route: 'Route 4: Market - Hospital',
     driver: 'Rahul Verma',
     location: { lat: 12.9616, lng: 77.5846 },
-    speed: 45,
-    heading: 270,
     passengers: 32,
     capacity: 42,
     nextStop: 'Central Mall',
     eta: 5,
-    lastUpdate: '45 sec ago',
-    status: 'moving'
+    status: 'moving' as const
   }
 ];
 
@@ -68,30 +82,86 @@ const mockStops = [
 ];
 
 export default function TrackPage() {
-  const [buses, setBuses] = useState(mockBuses);
+  const [buses, setBuses] = useState<Bus[]>([]);
   const [selectedRoute, setSelectedRoute] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStop, setSelectedStop] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [realTimeCount, setRealTimeCount] = useState(0);
 
-  // Simulate real-time updates
+  // Load and merge real GPS data with mock data
+  const loadBusData = () => {
+    const trackedVehicles = getAllTrackedVehicles();
+    const updatedBuses: Bus[] = [];
+
+    // First add buses with real GPS data
+    trackedVehicles.forEach(vehicle => {
+      const timeSinceUpdate = Date.now() - vehicle.location.timestamp;
+      const isRecent = timeSinceUpdate < 60000; // Consider data fresh if < 1 minute old
+      
+      updatedBuses.push({
+        id: vehicle.vehicleId,
+        number: vehicle.vehicleId,
+        route: `Live Route - Vehicle ${vehicle.vehicleId}`,
+        driver: `Driver ${vehicle.driverId}`,
+        location: vehicle.location,
+        speed: vehicle.location.speed,
+        heading: vehicle.location.heading,
+        accuracy: vehicle.location.accuracy,
+        passengers: Math.floor(Math.random() * 40) + 5,
+        capacity: 45,
+        nextStop: mockStops[Math.floor(Math.random() * mockStops.length)],
+        eta: Math.floor(Math.random() * 10) + 1,
+        lastUpdate: vehicle.lastUpdate,
+        status: isRecent ? (vehicle.location.speed && vehicle.location.speed > 5 ? 'moving' : 'stopped') : 'offline',
+        isRealTime: true
+      });
+    });
+
+    // Then add mock buses that don't have real GPS data
+    mockBusesTemplate.forEach(mockBus => {
+      // Don't add if we already have real GPS data for this vehicle
+      if (!trackedVehicles.find(v => v.vehicleId === mockBus.id)) {
+        updatedBuses.push({
+          ...mockBus,
+          speed: mockBus.status === 'moving' ? Math.random() * 60 : 0,
+          heading: Math.random() * 360,
+          lastUpdate: `${Math.floor(Math.random() * 5) + 1} min ago`,
+          isRealTime: false
+        });
+      }
+    });
+
+    setBuses(updatedBuses);
+    setRealTimeCount(trackedVehicles.length);
+    setLastRefresh(new Date());
+  };
+
+  // Initial load and periodic updates
   useEffect(() => {
+    loadBusData();
+    
     const interval = setInterval(() => {
+      loadBusData();
+      
+      // Update mock data with small changes for demo
       setBuses(prevBuses => 
-        prevBuses.map(bus => ({
-          ...bus,
-          location: {
-            lat: bus.location.lat + (Math.random() - 0.5) * 0.001,
-            lng: bus.location.lng + (Math.random() - 0.5) * 0.001
-          },
-          speed: bus.status === 'moving' ? Math.random() * 60 : 0,
-          passengers: Math.max(0, Math.min(bus.capacity, bus.passengers + Math.floor((Math.random() - 0.5) * 4))),
-          eta: Math.max(1, bus.eta + Math.floor((Math.random() - 0.5) * 2)),
-          lastUpdate: Math.random() > 0.7 ? 'Just now' : bus.lastUpdate
-        }))
+        prevBuses.map(bus => {
+          if (bus.isRealTime) return bus; // Don't modify real GPS data
+          
+          return {
+            ...bus,
+            location: {
+              lat: bus.location.lat + (Math.random() - 0.5) * 0.001,
+              lng: bus.location.lng + (Math.random() - 0.5) * 0.001
+            },
+            speed: bus.status === 'moving' ? Math.random() * 60 : 0,
+            passengers: Math.max(0, Math.min(bus.capacity, bus.passengers + Math.floor((Math.random() - 0.5) * 4))),
+            eta: Math.max(1, bus.eta + Math.floor((Math.random() - 0.5) * 2))
+          };
+        })
       );
-      setLastRefresh(new Date());
-    }, 10000); // Update every 10 seconds
+    }, 5000); // Update every 5 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -109,22 +179,23 @@ export default function TrackPage() {
   });
 
   const handleRefresh = () => {
-    // Simulate refresh with slight data changes
-    setBuses(prevBuses => 
-      prevBuses.map(bus => ({
-        ...bus,
-        lastUpdate: 'Just now',
-        eta: Math.max(1, bus.eta + Math.floor((Math.random() - 0.5) * 2))
-      }))
-    );
-    setLastRefresh(new Date());
+    loadBusData();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'moving': return 'text-green-600 bg-green-100';
-      case 'stopped': return 'text-yellow-600 bg-yellow-100';
-      default: return 'text-gray-600 bg-gray-100';
+  const getStatusColor = (status: string, isRealTime: boolean) => {
+    if (status === 'offline') return 'text-gray-600 bg-gray-100';
+    if (isRealTime) {
+      switch (status) {
+        case 'moving': return 'text-green-600 bg-green-100 ring-2 ring-green-300';
+        case 'stopped': return 'text-yellow-600 bg-yellow-100 ring-2 ring-yellow-300';
+        default: return 'text-gray-600 bg-gray-100';
+      }
+    } else {
+      switch (status) {
+        case 'moving': return 'text-green-600 bg-green-100';
+        case 'stopped': return 'text-yellow-600 bg-yellow-100';
+        default: return 'text-gray-600 bg-gray-100';
+      }
     }
   };
 
@@ -135,13 +206,36 @@ export default function TrackPage() {
     return 'text-green-600 bg-green-100';
   };
 
+  const getDirections = (bus: Bus) => {
+    const { lat, lng } = bus.location;
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+    window.open(googleMapsUrl, '_blank');
+  };
+
+  const callDriver = (driver: string) => {
+    // In a real app, this would call the actual driver phone number
+    alert(`Calling ${driver}... (Demo: Phone feature not implemented)`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-blue-600 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold mb-2">Live Bus Tracking</h1>
-          <p className="text-blue-100">Real-time locations and arrival times</p>
+          <p className="text-blue-100 mb-3">Real-time locations and arrival times</p>
+          
+          {/* Real-time status */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+              <span>{realTimeCount} buses with live GPS</span>
+            </div>
+            <div className="flex items-center">
+              <Satellite className="h-4 w-4 mr-1" />
+              <span>{buses.filter(b => !b.isRealTime).length} simulated buses</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -152,7 +246,7 @@ export default function TrackPage() {
             <h2 className="text-lg font-semibold text-gray-900">Find Your Bus</h2>
             <button 
               onClick={handleRefresh}
-              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+              className="flex items-center px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
             >
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
@@ -195,98 +289,113 @@ export default function TrackPage() {
           </div>
           
           <div className="mt-3 text-xs text-gray-500">
-            Last updated: {lastRefresh.toLocaleTimeString()} • {filteredBuses.length} buses found
+            Last updated: {lastRefresh.toLocaleTimeString()} • {filteredBuses.length} buses found • {realTimeCount} with real GPS
           </div>
         </div>
 
         {/* Live Buses */}
         <div className="space-y-4">
-          {filteredBuses.map((bus) => (
-            <div key={bus.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {bus.number}
-                    </h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bus.status)}`}>
-                      {bus.status === 'moving' ? 'Moving' : 'Stopped'}
-                    </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getOccupancyColor(bus.passengers, bus.capacity)}`}>
-                      {Math.round((bus.passengers / bus.capacity) * 100)}% Full
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-1">{bus.route}</p>
-                  <p className="text-xs text-gray-500">Driver: {bus.driver}</p>
-                </div>
-                
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {bus.eta} min
-                  </div>
-                  <div className="text-xs text-gray-500">to {bus.nextStop}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="flex items-center text-sm">
-                  <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-gray-600">Location</p>
-                    <p className="font-medium">{bus.location.lat.toFixed(4)}, {bus.location.lng.toFixed(4)}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center text-sm">
-                  <Navigation className="h-4 w-4 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-gray-600">Speed</p>
-                    <p className="font-medium">{bus.speed.toFixed(0)} km/h</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center text-sm">
-                  <Users className="h-4 w-4 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-gray-600">Passengers</p>
-                    <p className="font-medium">{bus.passengers}/{bus.capacity}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center text-sm">
-                  <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                  <div>
-                    <p className="text-gray-600">Updated</p>
-                    <p className="font-medium">{bus.lastUpdate}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-gray-600">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                  Real-time tracking active
-                </div>
-                <button className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100">
-                  Get Directions
-                </button>
-              </div>
+          {filteredBuses.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No buses found</h3>
+              <p className="text-gray-600">Try adjusting your search criteria or check back later.</p>
             </div>
-          ))}
-        </div>
+          ) : (
+            filteredBuses.map((bus) => (
+              <div key={bus.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg text-gray-900">{bus.number}</h3>
+                      {bus.isRealTime && (
+                        <div className="flex items-center text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+                          LIVE GPS
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-600 text-sm">{bus.route}</p>
+                    <p className="text-gray-500 text-xs mt-1">Driver: {bus.driver}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bus.status, bus.isRealTime)}`}>
+                      {bus.status === 'moving' ? 'Moving' : bus.status === 'stopped' ? 'Stopped' : 'Offline'}
+                    </span>
+                  </div>
+                </div>
 
-        {filteredBuses.length === 0 && (
-          <div className="text-center py-12">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No buses found</h3>
-            <p className="text-gray-600">Try adjusting your search criteria or check back later.</p>
-          </div>
-        )}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="flex items-center text-sm">
+                    <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-gray-700">{bus.nextStop}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-gray-700">{bus.eta} min</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Users className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className={`px-2 py-1 rounded-full text-xs ${getOccupancyColor(bus.passengers, bus.capacity)}`}>
+                      {bus.passengers}/{bus.capacity}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Navigation className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="text-gray-700">
+                      {bus.speed ? `${Math.round(bus.speed)} km/h` : '0 km/h'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* GPS Details for Real-time buses */}
+                {bus.isRealTime && (
+                  <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-xs text-green-700 font-medium mb-2">📡 Live GPS Data</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-green-600">
+                      <div>Lat: {bus.location.lat.toFixed(6)}</div>
+                      <div>Lng: {bus.location.lng.toFixed(6)}</div>
+                      {bus.accuracy && <div>Accuracy: ±{Math.round(bus.accuracy)}m</div>}
+                      {bus.heading && <div>Heading: {Math.round(bus.heading)}°</div>}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <div className="text-xs text-gray-500">
+                    <CheckCircle className="inline h-3 w-3 mr-1" />
+                    Updated: {bus.lastUpdate}
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => callDriver(bus.driver)}
+                      className="flex items-center text-green-600 hover:text-green-800 text-sm font-medium px-2 py-1 hover:bg-green-50 rounded"
+                    >
+                      <Phone className="h-3 w-3 mr-1" />
+                      Call
+                    </button>
+                    <button 
+                      onClick={() => getDirections(bus)}
+                      className="flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 hover:bg-blue-50 rounded"
+                    >
+                      <Navigation className="h-3 w-3 mr-1" />
+                      Directions
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
 
         {/* Legend */}
         <div className="bg-white rounded-lg shadow-sm p-4 mt-6">
           <h3 className="text-sm font-medium text-gray-900 mb-3">Status Legend</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+              <span>Live GPS Active</span>
+            </div>
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
               <span>Moving</span>
@@ -296,12 +405,8 @@ export default function TrackPage() {
               <span>Stopped</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-100 border border-green-400 rounded-full mr-2"></div>
-              <span>&lt;70% Full</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-100 border border-red-400 rounded-full mr-2"></div>
-              <span>&gt;90% Full</span>
+              <div className="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+              <span>Offline</span>
             </div>
           </div>
         </div>
